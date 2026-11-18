@@ -23,7 +23,7 @@ class AISettings:
     # Per-retriever relevance thresholds: keyword overlap and cosine similarity are on
     # different scales (calibrated by tests/unit/ai/test_pgvector_integration.py).
     retrieval_min_score_memory: float = 0.35
-    retrieval_min_score_pgvector: float = 0.5
+    retrieval_min_score_pgvector: float = 0.57
     retrieval_min_score_override: float | None = None  # RETRIEVAL_MIN_SCORE; beats both
     confidence_escalate_below: float = 0.5
     llm_mock_mode: str = "ok"  # only used by the mock provider
@@ -43,7 +43,7 @@ class AISettings:
             llm_api_key=e.get("LLM_API_KEY", ""),
             llm_timeout_seconds=float(e.get("LLM_TIMEOUT_SECONDS", "20")),
             retrieval_min_score_memory=float(e.get("RETRIEVAL_MIN_SCORE_MEMORY", "0.35")),
-            retrieval_min_score_pgvector=float(e.get("RETRIEVAL_MIN_SCORE_PGVECTOR", "0.5")),
+            retrieval_min_score_pgvector=float(e.get("RETRIEVAL_MIN_SCORE_PGVECTOR", "0.57")),
             retrieval_min_score_override=(
                 float(e["RETRIEVAL_MIN_SCORE"]) if e.get("RETRIEVAL_MIN_SCORE") else None
             ),

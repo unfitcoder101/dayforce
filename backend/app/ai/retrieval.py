@@ -114,7 +114,7 @@ class PgVectorRetriever:
     Score = cosine similarity clamped to 0..1 (pgvector `<=>` is cosine distance, so
     sim = 1 - distance). Results below `min_score` are dropped here.
     NOTE: bge-small similarities for unrelated text reached ~0.42 in calibration, so its threshold
-    (RETRIEVAL_MIN_SCORE_PGVECTOR, default 0.5) is separate from the keyword retriever's.
+    (RETRIEVAL_MIN_SCORE_PGVECTOR, default 0.57) is separate from the keyword retriever's.
     """
 
     SQL = (

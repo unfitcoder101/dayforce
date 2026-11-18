@@ -181,8 +181,8 @@ def test_embeddings_module_constants():
 def test_thresholds_are_per_retriever():
     mem = AISettings(retriever="memory")
     pg = AISettings(retriever="pgvector")
-    assert mem.retrieval_min_score == 0.35 and pg.retrieval_min_score == 0.5
-    assert AISettings.from_env({}).retrieval_min_score_pgvector == 0.5
+    assert mem.retrieval_min_score == 0.35 and pg.retrieval_min_score == 0.57
+    assert AISettings.from_env({}).retrieval_min_score_pgvector == 0.57
 
 
 def test_thresholds_from_env_and_override():
@@ -197,7 +197,7 @@ def test_thresholds_from_env_and_override():
 
 def test_get_retriever_uses_pgvector_threshold():
     s = AISettings(retriever="pgvector", database_url="postgresql://x")
-    assert get_retriever(s).min_score == 0.5
+    assert get_retriever(s).min_score == 0.57
     s = AISettings(
         retriever="pgvector", database_url="postgresql://x", retrieval_min_score_override=0.7
     )

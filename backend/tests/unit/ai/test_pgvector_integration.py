@@ -71,3 +71,70 @@ def test_unrelated_query_scores(dsn, embedder):
     out = PgVectorRetriever(dsn, embedder, min_score=0.0).retrieve("best pizza toppings", k=3)
     print("unrelated:", [(c.clause_id, c.score) for c in out])
     assert len(out) == 3
+
+
+RELEVANT = [
+    "missing clock out",
+    "employee forgot to punch out at the end of their shift",
+    "no lunch break was logged on a long shift",
+    "worked more than 12 hours in a single day",
+    "projected to go over 40 hours this week, overtime risk",
+    "overlapping shifts",
+    "less than 10 hours of rest between two shifts",
+    "manager approval is required before a timecard edit is final",
+]
+OFF_TOPIC = [
+    "best pizza toppings",
+    "weather forecast for tomorrow",
+    "how to bake sourdough bread",
+    "football world cup final score",
+    "python list comprehension syntax",
+    "best hiking trails in the himalayas",
+    "causes of the 1929 stock market crash",
+    "how to change a flat car tyre",
+]
+
+
+def test_threshold_calibration(dsn, embedder):
+    """The pgvector threshold must separate on-topic from off-topic queries.
+
+    Top-1 cosine score per query, measured with BAAI/bge-small-en-v1.5 on the 7 policy clauses:
+
+      RELEVANT (range 0.629 - 0.878)             OFF-TOPIC (range 0.406 - 0.511)
+      0.7337  missing clock out                  0.4206  best pizza toppings
+      0.6608  forgot to punch out                0.5108  weather forecast for tomorrow
+      0.7572  no lunch break logged              0.5038  how to bake sourdough bread
+      0.6290  worked more than 12 hours          0.4948  football world cup final score
+      0.8207  projected over 40 hours            0.4683  python list comprehension syntax
+      0.7367  overlapping shifts                 0.4055  best hiking trails in the himalayas
+      0.8446  less than 10 hours of rest         0.4698  causes of the 1929 stock market crash
+      0.8784  manager approval before edit       0.4779  how to change a flat car tyre
+
+    Gap: highest off-topic 0.5108 < lowest relevant 0.6290. A threshold of 0.5 let two
+    off-topic queries through, so RETRIEVAL_MIN_SCORE_PGVECTOR is 0.57 (middle of the gap).
+    The sample is small (16 queries); re-run this test if the model or policy text changes.
+    """
+    from app.ai.settings import AISettings
+
+    threshold = AISettings(retriever="pgvector").retrieval_min_score
+    r = PgVectorRetriever(dsn, embedder, min_score=0.0)  # no filtering: we want raw scores
+
+    def top(q):
+        best = r.retrieve(q, k=1)[0]
+        return best.clause_id, best.score
+
+    rel = {q: top(q) for q in RELEVANT}
+    off = {q: top(q) for q in OFF_TOPIC}
+    print(f"\nthreshold = {threshold}")
+    print("RELEVANT (top clause, top score):")
+    for q, (cid, sc) in rel.items():
+        print(f"  {sc:.4f}  {cid}  {q}")
+    print("OFF-TOPIC (top clause, top score):")
+    for q, (cid, sc) in off.items():
+        print(f"  {sc:.4f}  {cid}  {q}")
+    lo = min(sc for _, sc in rel.values())
+    hi = max(sc for _, sc in off.values())
+    print(f"lowest relevant = {lo:.4f}, highest off-topic = {hi:.4f}")
+    assert len(rel) == 8 and len(off) == 8
+    assert lo > threshold, f"relevant query scored {lo} <= threshold {threshold}"
+    assert hi < threshold, f"off-topic query scored {hi} >= threshold {threshold}"
