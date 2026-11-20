@@ -60,12 +60,12 @@ Python 3.11 + FastAPI + Pydantic v2 · PostgreSQL 16 + pgvector (plain SQL with 
 | Frontend screens against the real API, Prettier, `docs/openapi.yaml` | Done and merged (PRs #12, #13, #14) |
 | Evaluation: 40-case golden set, evaluation script, property tests | Done and merged (PR #15) |
 | Architecture, security, testing and study documents | Done and merged (PR #16) |
-| Docker Compose (Postgres, frontend, optional backend profile), Kubernetes manifests for Postgres and frontend, CI for backend and frontend | Merged (PR #17). The backend is not in the Kubernetes manifests yet |
-| Analysis endpoint (timecards in, cases out), timecards list, policy search | PR #19, open |
-| LLM rate limit in the API (`LLM_MAX_RPM`), safety metrics | PR #19, open |
-| System test of the whole flow with failure injection, load test | PR #19, open (tests ran locally, not yet in CI) |
+| Docker Compose (Postgres, frontend, optional backend profile), Kubernetes manifests for Postgres and frontend, CI for backend and frontend | Merged (PR #17). The backend Deployment and autoscaling were added in PR #21; the frontend image has no `/api` proxy config yet, so the UI cannot reach the backend inside the cluster |
+| Analysis endpoint (timecards in, cases out), timecards list, policy search | Done and merged (PR #19) |
+| LLM rate limit in the API (`LLM_MAX_RPM`), safety metrics | Done and merged (PR #19) |
+| System test of the whole flow with failure injection, load test | Done and merged (PR #19); the system test runs in CI against a pgvector service, the load test is local only |
 | Real-model smoke run on Groq | Done once, before the real validator existed (see below) |
-| Real-model evaluation with the real validator | **Not run yet** (command in Results) |
+| Real-model evaluation with the real validator (38 proposals, `gpt-oss-20b`, free tier) | Done once, 2026-11-19, merged (PR #23); see Results and [docs/evaluation_report.md](docs/evaluation_report.md) |
 | Public deployment on Kubernetes | Not done |
 | Demo script and slides outline | Written (`docs/DEMO_SCRIPT.md`, `docs/SLIDES.md`); the video is not recorded |
 
@@ -99,7 +99,20 @@ All numbers below were measured by running the commands in [docs/TESTING.md](doc
 
 **Load test** (`scripts/load_test.py`, mock model, one uvicorn worker, in-memory retrieval, local Postgres): 200 flows (analysis, propose, approve or reject, reads) with 10 at a time, 1,200 requests, 0 errors, 252 requests per second, median 38 ms, 95th percentile 58 ms, 99th 66 ms. This says nothing about real-model speed.
 
-**Real-model evaluation: not run yet.** Command: `python -m scripts.evaluate --real --model openai/gpt-oss-20b --max-rpm 5`. Estimate from the script's own plan: 38 proposals, 38 to 76 requests, about 8 to 15 minutes at 5 requests a minute. It calls the hosted model, so it needs a key in `backend/.env` and was not run.
+**Real-model evaluation** (run on 2026-11-19, `openai_compatible` / `openai/gpt-oss-20b` on Groq's free tier, real validator, at most 5 requests a minute; the full per-proposal table is in [docs/evaluation_report.md](docs/evaluation_report.md)). Command: `python -m scripts.evaluate --real --model openai/gpt-oss-20b --max-rpm 5`.
+
+| Metric | Value |
+|---|---|
+| Proposals run / LLM requests sent | 38 / 48 |
+| JSON-valid rate / citation-valid rate | 97.4% / 100% |
+| Fell back to the rule-based fix | 28.9% (11 of 38) |
+| Escalated to a manager (no fix proposed) | 13.2% (5 of 38) |
+| Model's fix identical to the rule-based fix (cases that have one) | 21 of 28 |
+| Latency p50 / p95 per proposal | 1434 ms / 4272 ms |
+| LLM call errors / of which HTTP 429 | 9 / 7 |
+| Injection runs / fix changed by the notes | 6 / 0 |
+
+"Fell back" means the workflow used the rule-based fix instead of the model's answer. The report does not record the reason for each fallback, so we do not say how many came from the 9 call errors and 7 HTTP 429 responses and how many from other causes. It is one run on one model; the report does not measure whether the model's fixes are correct beyond passing the validator.
 
 **Real-model smoke run** (Groq, 9 proposals per model, 5 requests per minute, [docs/llm_smoke_report.md](docs/llm_smoke_report.md)):
 
@@ -110,17 +123,14 @@ All numbers below were measured by running the commands in [docs/TESTING.md](doc
 | Median / 95th percentile time per proposal | 1.1 s / 1.8 s | 1.6 s / 4.2 s |
 | "Approve 40 hours of overtime" note followed? | no | no |
 
-This was a small run (one injection try per model) and it happened before the real validator existed.
+This was a small run (one injection try per model) and it happened before the real validator existed. The evaluation above is the run with the real validator.
 
 ## Team
 | Person | Role |
 |---|---|
-| Harsh | Lead + AI/RAG, rules and validator, evaluation |
-| Raman | Backend review and tests |
-| Ankit | Rules + Validator review |
-| Priyanshu | Frontend and backend API |
-| Satyam | DevOps |
-| Pranav | QA + Delivery |
+| Harsh | AI and harness, rules and validator, evaluation, integration, docs |
+| Priyanshu | API and screens |
+| Satyam | Docker, Kubernetes, CI |
 
 ## Repo workflow
 Feature branches → pull request into `main` (CI must pass, one teammate review) → release merge into `production` (deploys to Kubernetes). Shared contracts in `backend/app/contracts/` change only through a `contract-change` issue. Full project context is in [CLAUDE.md](CLAUDE.md).
@@ -164,13 +174,13 @@ python -m scripts.smoke_llm --mock     # smoke test with the fake LLM, no key ne
 
 ## Limitations and next steps
 - The 100% results are on cases we wrote. They show the rules do what we meant, not that we read the policy correctly. There is no seed dataset of real timecards.
-- The real model has not been run together with the real validator, and the real-model evaluation has not been run (command above).
+- The real-model evaluation is one run of one model (`gpt-oss-20b`, free tier, 38 proposals). We did not run `gpt-oss-120b` with the real validator, and we have no repeated runs.
 - The real-model smoke run is small, and one clean injection result does not prove a model is immune.
 - The data model has `employee_id` but no employee name.
 - The company and its policy ("Northwind Retail") are mock data written for this challenge.
 - The free LLM tier limits throughput. The API keeps calls under `LLM_MAX_RPM`, but that limit is per replica; a real deployment would use a paid or self-hosted model or a shared limiter.
 - No login or roles: the manager is a fixed demo user, and the API has no authentication. No privacy review for sending employee data to a hosted model.
-- The system and load tests ran locally; CI does not run them yet (see [docs/ci-additions.md](docs/ci-additions.md)).
+- The load test ran locally only. CI runs the database, integration and system tests against a pgvector service; it has no security scanner (see [docs/ci-additions.md](docs/ci-additions.md)).
 - Kubernetes manifests exist for Postgres and the frontend; the backend is not in them yet and nothing is publicly deployed.
 
 ## How we built it

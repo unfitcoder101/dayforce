@@ -1,7 +1,7 @@
 # Demo script (10 minutes)
 
-Harsh narrates about 6 minutes: problem, architecture, the live flow, the safety design, the
-numbers. Each teammate gets about 45 seconds for their own part. Times are running totals.
+Harsh narrates about 7 minutes: problem, architecture, the live flow, the rules and validator, the
+safety design, the numbers. Each of the other presenters gets about 45 seconds for their own part. Times are running totals.
 
 ## Before you press record (10 minutes of setup)
 
@@ -83,44 +83,45 @@ decision endpoint applies the fix and writes the audit events together, the audi
 UPDATE and DELETE with a trigger, `/health` checks the database, `/metrics` exposes the counters.
 **If it fails:** `/docs` does not open: show `docs/openapi.yaml` in the editor.
 
-### 6:10 to 6:55, Ankit: detectors and validator
-**On screen:** `backend/app/domain/rules/detectors.py`, then `validator.py`, then a unit test file.
-**Say:** (your own words) four detectors, pure functions, no I/O, deterministic ids; the validator
-applies a proposed fix to a copy of the timecard and re-runs the rules, and rejects anything that
-creates a new violation or touches the wrong data. Both are at 100% coverage.
-**If it fails:** if the editor is slow, show `docs/TESTING.md` coverage lines instead.
-
-### 6:55 to 7:55, Harsh: the safety design
-**On screen:** terminal with `pytest tests/system -q` output (pre-run), `docs/SECURITY.md` table.
-**Say:** the model is allowed to fail in five ways and each ends safely. We inject all of them with a
+### 6:10 to 7:55, Harsh: the rules, the validator and the safety design (1 min 45)
+**On screen:** `backend/app/domain/rules/detectors.py`, then `validator.py` (about 45 s), then a
+terminal with `pytest tests/system -q` output (pre-run) and the `docs/SECURITY.md` table (about 1 min).
+**Say, first part (about 45 s):** four detectors, pure functions, no I/O, deterministic ids; the
+validator applies a proposed fix to a copy of the timecard and re-runs the rules, and rejects
+anything that creates a new violation or touches the wrong data. Both are at 100% test coverage.
+**If it fails:** if the editor is slow, show the coverage lines in `docs/TESTING.md` instead.
+**Say, second part (about 1 min):** the model is allowed to fail in five ways and each ends safely. We inject all of them with a
 mock model against the running API: timeout, HTTP 429, invalid JSON, an invented citation, and low
 confidence. The first four fall back to the rule-based fix, validated again; low confidence
 escalates and an escalated case cannot be approved. Real model calls are rate limited per minute and
 never wait past the deadline. Metrics count fallbacks, validator rejections, escalations and LLM
 errors.
 **If it fails:** if you run the tests live and they are slow, say "this takes about 9 seconds" and
-show the saved output instead.
+show the saved output instead. If time runs short, shorten the first part, not the safety design.
 
 ### 7:55 to 8:40, Pranav: tests and evaluation
 **On screen:** `docs/evaluation_report.md` and the pytest summary line.
 **Say:** (your own words) 430 backend tests against a real pgvector database, 98% coverage; golden set
 of 40 cases, 378 of 378 bad fixes rejected, 0 of 5 injection attacks through; system test and load
-test numbers; the prompt-injection set.
+test numbers; the prompt-injection set. The real-model run: 38 proposals, 11 fell back to the
+rule-based fix, 5 escalated, 0 of 6 injection runs changed the fix.
 **If it fails:** read the numbers from `docs/TESTING.md`.
 
 ### 8:40 to 9:25, Satyam: delivery
 **On screen:** `infra/docker/docker-compose.yml`, `infra/k8s/`, the GitHub Actions run.
-**Say:** (your own words) the Postgres and frontend containers, the Kustomize manifests for a local
+**Say:** (your own words) the Postgres, backend and frontend containers, the Kustomize manifests for a local
 kind cluster, and the CI workflow that runs lint and tests on each pull request. Be exact about
-what is deployed: if the backend is not in the cluster yet, say so.
+what is deployed: the manifests cover Postgres, the backend (with an autoscaler) and the frontend;
+nothing is publicly deployed, and the frontend image does not proxy `/api` yet.
 **If it fails:** show the files and the last green CI run instead of a live deploy.
 
 ### 9:25 to 10:00, Harsh: the numbers, the limits, the close
 **On screen:** slide 4, then slide 5.
 **Say:** measured, not promised: 1,200 load-test requests with 0 errors on a mock model; the real
-model has only had a small smoke run of 9 proposals per model, and the real-model evaluation has not
-been run. Limits: no login or roles, mock company data, a hosted model sees employee ids, no privacy
-review. Next: roles, a seed set, a shared rate limit, the real model with the real validator.
+model run was one evaluation of `gpt-oss-20b` on the free tier with the real validator: 38 proposals,
+97.4% valid JSON, 100% valid citations, 28.9% fell back to the rule-based fix, 13.2% escalated, p95
+4.3 s. Limits: one run, no login or roles, mock company data, a hosted model sees employee ids, no
+privacy review. Next: roles, a seed set, a shared rate limit, repeat the real-model run.
 **If it fails:** if you run over, cut the limits to one sentence and keep the "AI never changes pay"
 line last.
 
