@@ -129,9 +129,9 @@ All numbers below were measured by running the commands in [docs/TESTING.md](doc
 This was a small run (one injection try per model) and it happened before the real validator existed. The evaluation above is the run with the real validator.
 
 ## Team
-- **Harsh Kasliwal** (team lead, github.com/unfitcoder101): the AI harness (retrieval, proposal, citation check, retry and fallback), the rule detectors and validator, the evaluation and tests, integration, and the docs.
-- **Priyanshu**: the API and the manager screens.
-- **Satyam**: Docker, Kubernetes, CI/CD, and the live deployment.
+- **Harsh Kasliwal** (team lead, [github.com/unfitcoder101](https://github.com/unfitcoder101)): the AI harness (retrieval, proposal, citation check, retry and fallback), the rule detectors and validator, the evaluation and tests, integration, and the docs.
+- **Priyanshu** (https://github.com/priyanshu152004-artist): the manager screens (review queue, case page, approve/reject, audit log), the backend API and database (endpoints, one-time fix application, append-only audit log), and their tests.
+- **Satyam** (https://github.com/Satyam1310): Docker, Kubernetes, CI/CD, and the live deployment.
 
 ## Live demo
 - Main environment: https://rolling-transport-icons-exhibitions.trycloudflare.com
