@@ -195,4 +195,4 @@ python -m scripts.smoke_llm --mock     # smoke test with the fake LLM, no key ne
 An AI coding assistant was used for scaffolding and first drafts of code and docs. The team set the architecture, the contracts, the policy and the safety rules, and wrote tests for every failure path. Code is read, tested and reviewed by a teammate before it is merged.
 
 ## Demo
-The demo video was submitted through the challenge form. _Link: TODO_
+The demo video was submitted through the challenge form.
