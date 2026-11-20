@@ -1,5 +1,8 @@
 # Timecard Exception Resolution Agent
-> AI Innovation Challenge · Dayforce India · built by a team of six in 48 hours
+> AI Innovation Challenge · Dayforce India · built by a team of three in 48 hours
+
+Presentation: https://docs.google.com/presentation/d/1AS7J662pbCW-6B7BnFt1Iht9d5b-I-18/edit?usp=sharing (also in the repo at `docs/Timecard-exception-agent.pptx`)
+Repository: https://github.com/unfitcoder101/dayforce
 
 An AI helper that finds mistakes on employee timecards, suggests a fix with the company policy behind it, checks that fix with code, and waits for a manager to approve. The AI never changes anyone's pay on its own.
 
@@ -126,11 +129,15 @@ All numbers below were measured by running the commands in [docs/TESTING.md](doc
 This was a small run (one injection try per model) and it happened before the real validator existed. The evaluation above is the run with the real validator.
 
 ## Team
-| Person | Role |
-|---|---|
-| Harsh | AI and harness, rules and validator, evaluation, integration, docs |
-| Priyanshu | API and screens |
-| Satyam | Docker, Kubernetes, CI |
+- **Harsh Kasliwal** (team lead, github.com/unfitcoder101): the AI harness (retrieval, proposal, citation check, retry and fallback), the rule detectors and validator, the evaluation and tests, integration, and the docs.
+- **Priyanshu**: the API and the manager screens.
+- **Satyam**: Docker, Kubernetes, CI/CD, and the live deployment.
+
+## Live demo
+- Main environment: https://rolling-transport-icons-exhibitions.trycloudflare.com
+- Production environment: https://accessories-exist-code-identity.trycloudflare.com
+
+These links are temporary quick tunnels to a Kubernetes cluster running on a team laptop, so they may be down when you open them. The demo uses the mock model, not the real one. Real-model numbers come from one evaluation run, described in [docs/evaluation_report.md](docs/evaluation_report.md). To run it yourself, see "Run it" below.
 
 ## Repo workflow
 Feature branches → pull request into `main` (CI must pass, one teammate review) → release merge into `production` (deploys to Kubernetes). Shared contracts in `backend/app/contracts/` change only through a `contract-change` issue. Full project context is in [CLAUDE.md](CLAUDE.md).
@@ -179,12 +186,13 @@ python -m scripts.smoke_llm --mock     # smoke test with the fake LLM, no key ne
 - The data model has `employee_id` but no employee name.
 - The company and its policy ("Northwind Retail") are mock data written for this challenge.
 - The free LLM tier limits throughput. The API keeps calls under `LLM_MAX_RPM`, but that limit is per replica; a real deployment would use a paid or self-hosted model or a shared limiter.
-- No login or roles: the manager is a fixed demo user, and the API has no authentication. No privacy review for sending employee data to a hosted model.
+- No login or roles: the manager is a fixed demo user, and the API has no authentication. No privacy review has been done for sending employee data to a hosted model.
 - The load test ran locally only. CI runs the database, integration and system tests against a pgvector service; it has no security scanner (see [docs/ci-additions.md](docs/ci-additions.md)).
-- Kubernetes manifests exist for Postgres and the frontend; the backend is not in them yet and nothing is publicly deployed.
+- The live demo runs on a Kubernetes cluster on a team laptop, reached through temporary tunnels; it can be down, and it uses the mock model.
+- A hosted model sees employee ids (there are no names in the data).
 
 ## How we built it
 An AI coding assistant was used for scaffolding and first drafts of code and docs. The team set the architecture, the contracts, the policy and the safety rules, and wrote tests for every failure path. Code is read, tested and reviewed by a teammate before it is merged.
 
 ## Demo
-_10-minute demo video link: TODO_
+The demo video was submitted through the challenge form. _Link: TODO_
