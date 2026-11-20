@@ -134,10 +134,10 @@ This was a small run (one injection try per model) and it happened before the re
 - **Satyam** (https://github.com/Satyam1310): Docker, Kubernetes, CI/CD, and the live deployment.
 
 ## Live demo
-- Main environment: https://rolling-transport-icons-exhibitions.trycloudflare.com
-- Production environment: https://accessories-exist-code-identity.trycloudflare.com
+- App: <RENDER_URL>
+- Backend health check: <RENDER_API_URL>/health
 
-These links are temporary quick tunnels to a Kubernetes cluster running on a team laptop, so they may be down when you open them. The demo uses the mock model, not the real one. Real-model numbers come from one evaluation run, described in [docs/evaluation_report.md](docs/evaluation_report.md). To run it yourself, see "Run it" below.
+The app runs on Render's free tier ([docs/DEPLOY.md](docs/DEPLOY.md)). The backend sleeps after about 15 minutes without traffic, so the first load can take about a minute. The demo uses the mock model, not the real one. Real-model numbers come from one evaluation run, described in [docs/evaluation_report.md](docs/evaluation_report.md). To run it yourself, see "Run it" below.
 
 ## Repo workflow
 Feature branches → pull request into `main` (CI must pass, one teammate review) → release merge into `production` (deploys to Kubernetes). Shared contracts in `backend/app/contracts/` change only through a `contract-change` issue. Full project context is in [CLAUDE.md](CLAUDE.md).
