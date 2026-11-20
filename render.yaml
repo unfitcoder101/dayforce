@@ -1,0 +1,67 @@
+# Render Blueprint: the whole app on Render's free tier.
+# Deploy: Render Dashboard -> New -> Blueprint -> pick this repo. Steps and limits: docs/DEPLOY.md.
+# No secrets live here: the database password reaches the backend through DATABASE_URL, which
+# Render fills in from the database below.
+
+databases:
+  - name: timecard-db
+    plan: free
+    region: singapore
+    databaseName: timecards
+    user: app
+    postgresMajorVersion: "16"
+
+services:
+  # Backend: FastAPI in Docker. Creates its tables (and the vector extension) at startup.
+  - type: web
+    name: timecard-agent-api
+    runtime: docker
+    plan: free
+    region: singapore
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: timecard-db
+          property: connectionString
+      - key: PORT # the container listens on 8000 (backend/Dockerfile)
+        value: "8000"
+      - key: LLM_PROVIDER # mock model: no API key needed
+        value: mock
+      - key: LLM_MOCK_MODE
+        value: ok
+      - key: RETRIEVER
+        value: memory
+      - key: ENABLE_DEV_SEED # never wipe data in a deployment
+        value: "false"
+      - key: LOG_LEVEL
+        value: INFO
+      - key: DB_INIT_RETRY_SECONDS # wait for the database at startup instead of giving up
+        value: "30"
+
+  # Frontend: the built React app as a static site. It calls /api/... on its own address and
+  # Render forwards those calls to the backend, so the browser talks to one address only.
+  - type: web
+    name: timecard-agent
+    runtime: static
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: ./frontend/dist
+    envVars:
+      - key: NODE_VERSION
+        value: "20"
+      - key: VITE_USE_MOCK
+        value: "false"
+      - key: VITE_API_BASE_URL
+        value: /api
+    routes:
+      # Keep the /api prefix. If Render gives the backend a different address than this one,
+      # change it here (or under the static site's Redirects/Rewrites) to the backend's real URL.
+      - type: rewrite
+        source: /api/*
+        destination: https://timecard-agent-api.onrender.com/api/*
+      # Every other path is the single-page app.
+      - type: rewrite
+        source: /*
+        destination: /index.html
