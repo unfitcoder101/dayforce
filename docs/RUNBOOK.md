@@ -1,7 +1,7 @@
 # Runbook
 
 How to run the project on your machine, how to switch the model, and the five problems you are
-most likely to hit. Every command here was run on `main` plus PR #19 (the analysis endpoint)
+most likely to hit. Every command here was run on `main` (including the analysis endpoint, PR #19)
 unless it says "not verified".
 
 ## Run it locally

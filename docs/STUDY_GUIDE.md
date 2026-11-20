@@ -1,7 +1,7 @@
 # Study guide (for Harsh)
 
 Read this once top to bottom, then open the files named in it. It describes the code on `main`
-(PRs #12 to #17 are merged) plus PR #19, which is open and marked **(PR #19)**. Function names are
+(PRs #12 to #17, #19, #20 and #23 are merged). Function names are
 given instead of line numbers because line numbers move.
 
 ## 1. Words you will need
@@ -35,11 +35,11 @@ given instead of line numbers because line numbers move.
 | `scripts/smoke_llm.py` | Runs a fixed set of cases against one or more models and reports rates and latency. Throttled. |
 | `scripts/demo_flow.py` | A narrated run of one case, for the demo video. |
 | `scripts/export_mock_data.py` | Builds the example data and TypeScript types for the frontend from the real models. |
-| `ai/guard.py` **(PR #19)** | The LLM rate limit (`RateLimiter`, `RateLimitedLLM`) and the LLM metrics wrapper (`InstrumentedLLM`). Applied in the API only. |
-| `api/routes.py`, `api/errors.py` | All the HTTP endpoints and the one error shape. **(PR #19)** adds `POST /api/analysis/run`, `GET /api/timecards`, `GET /api/policies/search`. |
+| `ai/guard.py` | The LLM rate limit (`RateLimiter`, `RateLimitedLLM`) and the LLM metrics wrapper (`InstrumentedLLM`). Applied in the API only. |
+| `api/routes.py`, `api/errors.py` | All the HTTP endpoints and the one error shape. adds `POST /api/analysis/run`, `GET /api/timecards`, `GET /api/policies/search`. |
 | `db/` (`connection.py`, `repo.py`, `schema.sql`, `seed.py`) | One connection and transaction per request, plain SQL, the append-only audit trigger, the demo seed. |
 | `services/apply_fix.py` | Applies an approved fix to a timecard. |
-| `observability/` | JSON logs with request ids, and the Prometheus counters. **(PR #19)** adds validator rejections, escalations, LLM errors and the LLM latency histogram. |
+| `observability/` | JSON logs with request ids, and the Prometheus counters. adds validator rejections, escalations, LLM errors and the LLM latency histogram. |
 
 Outside `backend/app`: `data/policies/time_attendance_policy.md` (the policy text),
 `docs/frontend-mock/` (data for the UI), `frontend/` (React screens).
@@ -149,12 +149,19 @@ through (PR #15, merged). We do not claim immunity.
 
 **5. What if the model is down or rate limited?** An error, timeout or 429 falls back at once to
 the rule-based fix. If there is none, a manager gets the case. At most 2 calls and 25 seconds. The
-API also keeps real calls under `LLM_MAX_RPM` (default 5 a minute per process) **(PR #19)**.
+API also keeps real calls under `LLM_MAX_RPM` (default 5 a minute per process).
 
 **6. How do you know the detectors are right?** Unit tests on every boundary (exactly 8, 12, 6
 hours, 38 and 40 weekly hours, 10 hours of rest), property tests on random timecards, and a golden
 set of 40 cases whose expected results we wrote from the policy (PR #15, merged). It is our own
 reading of the policy on cases we wrote, so it proves consistency, not that we are right.
+
+**6b. What did the real-model run show?** On 2026-11-19, `openai/gpt-oss-20b` on the free tier with the
+real validator, 38 proposals (`docs/evaluation_report.md`): JSON-valid 97.4%, citation-valid 100%,
+fell back to the rule-based fix 28.9% (11), escalated 13.2% (5), the model's fix identical to the
+rule-based fix in 21 of 28 cases that have one, p50 1434 ms and p95 4272 ms, 9 call errors of which
+7 were HTTP 429, 6 injection runs with 0 fixes changed. The report does not record the reason for each
+fallback, so do not say the 429s caused them. One run, one model.
 
 **7. Where did your evaluation find a real bug?** Retrieval used one query per exception type. For
 daily overtime the right clause scored 0.33 against a 0.35 minimum, so a correct citation was
@@ -190,10 +197,10 @@ tested. Teammate review of several pull requests is still to be done.
 
 **15. What would you do differently?** Put the evaluation in earlier, because it found the
 retrieval bug. Agree the API paths with the contract spec before building it, because the API differed
-from the spec (we updated `CLAUDE.md` section 9 to match what was built). And test the real model together with the real validator, which we have not
-done yet.
+from the spec (we updated `CLAUDE.md` section 9 to match what was built). And test the real model together with the real validator earlier; we first did it on 2026-11-19
+(38 proposals, `gpt-oss-20b`: 11 fell back to the rule-based fix, 5 escalated, 0 injections changed the fix).
 
-## 6. The new parts (PR #19)
+## 6. The newer parts (analysis endpoint, rate guard, system test)
 
 Read these files, in this order: `api/routes.py` (the analysis section), `ai/guard.py`,
 `observability/metrics.py`, `tests/system/conftest.py`, `tests/system/test_failure_injection.py`.
