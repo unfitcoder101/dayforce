@@ -23,14 +23,14 @@
       context: ../../frontend
       dockerfile: Dockerfile
       args:
-        VITE_USE_MOCK: "true"
+        VITE_USE_MOCK: "false"
+        VITE_API_BASE_URL: /api
     container_name: timecard-frontend
     restart: unless-stopped
     ports:
       - "3000:8080"
 
   backend:
-    profiles: ["api"]
     build:
       context: ../..
       dockerfile: backend/Dockerfile

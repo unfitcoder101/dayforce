@@ -44,7 +44,7 @@ Stop: `Ctrl+C` the servers, then `docker compose -f infra/docker/docker-compose.
 
 Docker for the whole stack (`make up`) starts Postgres and the frontend (built on mock data by
 default); the backend container is behind the `api` profile:
-`docker compose -f infra/docker/docker-compose.yml --profile api up -d --build` (not verified).
+`docker compose -f infra/docker/docker-compose.yml up -d --build` (the backend starts with the rest, because the frontend image proxies `/api` to it; not verified).
 
 ## Switch the model
 
