@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -16,18 +17,25 @@ from fastapi.responses import JSONResponse  # noqa: E402
 
 from app.api.errors import install_error_handlers  # noqa: E402
 from app.api.routes import router  # noqa: E402
-from app.db.connection import connect, init_schema  # noqa: E402
+from app.db.connection import connect, init_schema_with_retry  # noqa: E402
 from app.observability.logging import setup_logging  # noqa: E402
 from app.observability.metrics import install_middleware, metrics_response  # noqa: E402
 
 log = logging.getLogger("app")
 
 
+def db_init_retry_seconds() -> float:
+    """DB_INIT_RETRY_SECONDS: seconds to wait for the database at startup. 0 (default) = one try."""
+    try:
+        return max(float(os.environ.get("DB_INIT_RETRY_SECONDS", "0") or 0), 0.0)
+    except ValueError:
+        return 0.0
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     try:
-        with connect() as conn:
-            init_schema(conn)
+        init_schema_with_retry(db_init_retry_seconds(), connect_fn=connect)
         log.info("database schema ready")
     except Exception as e:  # the app still starts; /health reports the DB as down
         log.warning("could not initialise the database schema: %s", type(e).__name__)
